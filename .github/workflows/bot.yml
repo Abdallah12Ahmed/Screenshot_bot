@@ -1,10 +1,8 @@
 name: WhatsApp Crop Bot Scheduled Runner
 
 on:
-  workflow_dispatch: # 🌟 السطر ده اللي هيظهرلك زرار التشغيل اليدوي في جيت هاب حالا
-  schedule:
-    # يفتح الساعة 12 بالليل بتوقيت مصر (9 مساءً بتوقيت جرينتش UTC)
-    - cron: '0 21 * * *'
+  # 🌟 يعمل فقط وحصرياً عندما يضغط العميل على زر التشغيل يدوياً
+  workflow_dispatch:
 
 jobs:
   run-bot:
@@ -24,8 +22,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install python-telegram-bot==21.3 opencv-python-headless numpy==1.26.4
 
-    - name: Run Telegram Bot with Timeout
+    - name: Run Telegram Bot
       env:
+        # تمرير التوكن المخفي بأمان للسيرفر
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      # يغلق تلقائياً بعد 6 ساعات (21600 ثانية) ليقفل الساعة 6 صباحاً
-      run: timeout 21600 python main.py || true
+      # يظل يعمل بشكل مستمر دون توقف حتى يقوم العميل بعمل إيقاف (Cancel) بنفسه
+      run: python main.py
