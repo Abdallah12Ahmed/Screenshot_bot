@@ -1,6 +1,7 @@
 name: WhatsApp Crop Bot Scheduled Runner
 
 on:
+  workflow_dispatch: # 🌟 السطر ده اللي هيظهرلك زرار التشغيل اليدوي في جيت هاب حالا
   schedule:
     # يفتح الساعة 12 بالليل بتوقيت مصر (9 مساءً بتوقيت جرينتش UTC)
     - cron: '0 21 * * *'
