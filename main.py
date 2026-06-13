@@ -10,14 +10,8 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 🌟 تقسيم التوكن لأجزاء لمنع البوتات التلقائية في جيت هاب من اكتشافه أو قفله
-part1 = "8600704101"
-part2 = "AAH06GOCcDB"
-part3 = "ofVRkBi2WI"
-part4 = "QJxpj5oNS2YU"
-
-# تجميع التوكن بشكل ديناميكي أثناء التشغيل
-TOKEN = f"{part1}:{part2}_{part3}_" + part4
+# 🌟 قراءة التوكن بأمان من متغيرات البيئة الخاصة بجيت هاب
+TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -25,11 +19,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Welcome to the Automated WhatsApp Chat List Cropper Bot!\n\n"
         "Send me a screenshot of your chat list, and I will instantly split "
-        "each conversation into its own clean, individual image."
+        "each conversation with the final micro-adjusted Shift-Down calibration padding."
     )
 
 
 def process_and_crop_individual_chats(image_path, output_dir):
+    """
+    🌟 معايرة القطع العكسي مع اللمسة الأخيرة لإزاحة المقص لأسفل (Micro Shift-Down)
+    """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -38,56 +35,70 @@ def process_and_crop_individual_chats(image_path, output_dir):
         return []
 
     h, w, _ = img.shape
-    top_margin = int(h * 0.118)
+
+    # نقطة الارتكاز المرجعية للحافة السفلية للشات الأخير رقم 8
+    bottom_margin = int(h * 0.862)
+    
+    # الارتفاع المرجعي لكل شات
     row_percentage = 0.093
     row_height = int(h * row_percentage)
 
-    refined_paths = []
-    file_index = 1
+    slices_dict = {}
 
     for i in range(8):
-        base_y_start = int(top_margin + (i * row_height))
+        # حساب النقطة السفلية المرجعية لكل شات صعوداً لأعلى
+        current_row_bottom = int(bottom_margin - ((7 - i) * row_height))
 
-        if i == 0: top_skip_padding = int(h * 0.006)
-        elif i == 1: top_skip_padding = int(h * 0.002)
-        elif i == 2: top_skip_padding = -int(h * 0.005)
-        elif i == 3: top_skip_padding = -int(h * 0.010)
-        elif i == 4: top_skip_padding = -int(h * 0.015)
-        elif i == 5: top_skip_padding = -int(h * 0.020)
-        elif i == 6: top_skip_padding = -int(h * 0.025)
-        elif i == 7: top_skip_padding = -int(h * 0.030)
+        # 🌟 اللمسة الأخيرة: زيادة طفيفة إضافية لقضم كلي من فوق وتوسيع ممتاز من تحت
+        if i == 7:    # الشات 8 (الأخير تحت)
+            bottom_padding = int(h * 0.044)  # النزول النهائي المظبوط لأسفل
+            top_padding = int(h * 0.032)     # قضم نهائي آمن ومحكم من الأعلى
+        elif i == 6:  # الشات 7
+            bottom_padding = int(h * 0.046)
+            top_padding = int(h * 0.033)
+        elif i == 5:  # الشات 6
+            bottom_padding = int(h * 0.048)
+            top_padding = int(h * 0.035)
+        elif i == 4:  # الشات 5
+            bottom_padding = int(h * 0.050)
+            top_padding = int(h * 0.037)
+        elif i == 3:  # الشات 4
+            bottom_padding = int(h * 0.052)
+            top_padding = int(h * 0.039)
+        elif i == 2:  # الشات 3
+            bottom_padding = int(h * 0.054)
+            top_padding = int(h * 0.041)
+        elif i == 1:  # الشات 2
+            bottom_padding = int(h * 0.056)
+            top_padding = int(h * 0.043)
+        elif i == 0:  # الشات 1 (الأول فوق)
+            bottom_padding = int(h * 0.058)
+            top_padding = int(h * 0.046)
 
-        y_start = base_y_start + top_skip_padding
-        y_end_base = base_y_start + row_height
+        # حساب إحداثيات الـ Y النهائية بعد اللمسة الأخيرة للإزاحة لأسفل
+        y_end = current_row_bottom + bottom_padding
+        y_start = (current_row_bottom - row_height) + top_padding
 
-        if i == 0: current_padding = int(h * 0.005)
-        elif i == 1: current_padding = int(h * 0.001)
-        elif i == 2: current_padding = -int(h * 0.006)
-        elif i == 3: current_padding = -int(h * 0.011)
-        elif i == 4: current_padding = -int(h * 0.016)
-        elif i == 5: current_padding = -int(h * 0.021)
-        elif i == 6: current_padding = -int(h * 0.026)
-        elif i == 7: current_padding = -int(h * 0.031)
-
-        y_end_with_padding = y_end_base + current_padding
-
+        # ضمان عدم تجاوز أبعاد الصورة الفعلية
         if y_start < 0: y_start = 0
-        if y_end_with_padding > h: y_end_with_padding = h
+        if y_end > h: y_end = h
 
-        individual_chat_slice = img[y_start:y_end_with_padding, 0:w]
+        # تنفيذ القص
+        individual_chat_slice = img[y_start:y_end, 0:w]
 
-        filename = f"chat_{file_index:02d}.jpg"
+        filename = f"chat_{i+1:02d}.jpg"
         filepath = os.path.join(output_dir, filename)
         cv2.imwrite(filepath, individual_chat_slice)
+        
+        slices_dict[i] = filepath
 
-        refined_paths.append(filepath)
-        file_index += 1
-
+    # إعادة المسارات مرتبة ترتيباً طبيعياً من الشات 1 إلى الشات 8
+    refined_paths = [slices_dict[k] for k in sorted(slices_dict.keys())]
     return refined_paths
 
 
 async def handle_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    status_message = await update.message.reply_text("📥 Screenshot received. Processing individual chat items...")
+    status_message = await update.message.reply_text("📥 Screenshot received. Processing final micro-adjusted layout...")
     temp_working_dir = f"workspace_{update.message.chat_id}_{update.message.message_id}"
 
     try:
@@ -102,12 +113,12 @@ async def handle_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
         generated_slices = process_and_crop_individual_chats(input_file_path, output_slices_dir)
 
         if not generated_slices:
-            await status_message.edit_text("❌ Extraction failed. Please ensure standard dark mode screenshot.")
+            await status_message.edit_text("❌ Extraction failed. Please check the image format.")
             return
 
         await status_message.edit_text(f"✅ Extracted {len(generated_slices)} individual items. Sending now...")
 
-        for slice_path in sorted(generated_slices):
+        for slice_path in generated_slices:
             if os.path.exists(slice_path):
                 with open(slice_path, 'rb') as chat_img:
                     await update.message.reply_photo(photo=chat_img)
@@ -122,11 +133,15 @@ async def handle_screenshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
+    if not TOKEN:
+        logger.error("❌ TELEGRAM_BOT_TOKEN environment variable is missing!")
+        return
+
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.PHOTO, handle_screenshot))
 
-    print("🤖 Production-ready Bot is running smoothly...")
+    print("🤖 Production-ready Bot with final micro-calibration is running...")
     application.run_polling()
 
 
